@@ -10,6 +10,10 @@ interface Props {
 
 const { title = "Elecciones en Aragón", showSidebar = true, noindex = false } = Astro.props;
 const pathname = Astro.url.pathname;
+const base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") || "";
+const isHome = pathname === base || pathname === base + "/" || pathname === "/";
+const isSobre = pathname.startsWith(base + "/sobre") || pathname.startsWith("/sobre");
+const isJugar = pathname.startsWith(base + "/jugar") || pathname.startsWith("/jugar");
 ---
 
 <!doctype html>
@@ -54,7 +58,7 @@ const pathname = Astro.url.pathname;
       ul { list-style: none; margin: 0; padding: 0; }
     </style>
   </head>
-  <body>
+  <body data-base={(import.meta.env.BASE_URL || "/").replace(/\/$/, "") || "/"}>
     <div class="disclaimer-overlay" id="disclaimer-overlay" role="dialog" aria-modal="true" aria-labelledby="disclaimer-title">
       <div class="disclaimer-box">
         <h2 class="disclaimer-title" id="disclaimer-title">Aviso</h2>
@@ -75,15 +79,15 @@ const pathname = Astro.url.pathname;
           <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Logo" class="logo-img" width="333" height="61" />
         </div>
         <nav class="nav" aria-label="Navegación">
-          <a href={`${import.meta.env.BASE_URL}`} class={`nav-item ${pathname === "/" ? "nav-item--active" : ""}`}>
+          <a href={`${import.meta.env.BASE_URL}`} class={`nav-item ${isHome ? "nav-item--active" : ""}`}>
             <span class="material-symbols-outlined nav-item__icon" aria-hidden="true">home</span>
             Inicio
           </a>
-          <a href={`${import.meta.env.BASE_URL}sobre/`} class={`nav-item ${pathname.startsWith("/sobre") ? "nav-item--active" : ""}`}>
+          <a href={`${import.meta.env.BASE_URL}sobre/`} class={`nav-item ${isSobre ? "nav-item--active" : ""}`}>
             <span class="material-symbols-outlined nav-item__icon" aria-hidden="true">info</span>
             Sobre este proyecto
           </a>
-          <a href={`${import.meta.env.BASE_URL}jugar/`} class={`nav-item ${pathname.startsWith("/jugar") ? "nav-item--active" : ""}`}>
+          <a href={`${import.meta.env.BASE_URL}jugar/`} class={`nav-item ${isJugar ? "nav-item--active" : ""}`}>
             <span class="material-symbols-outlined nav-item__icon" aria-hidden="true">sports_esports</span>
             Jugar
           </a>
@@ -185,8 +189,11 @@ const pathname = Astro.url.pathname;
     const overlay = document.getElementById("disclaimer-overlay");
     const acceptBtn = document.getElementById("disclaimer-accept");
     if (!overlay || !acceptBtn) return;
-    var path = window.location.pathname || "/";
-    var isHome = path === "/" || path === "" || path === "/index.html";
+    var path = (window.location.pathname || "/").replace(/\/$/, "") || "/";
+    var pathNorm = path.replace(/^\/|\/$/g, "") || "";
+    var base = (document.body && document.body.getAttribute("data-base")) || "";
+    var baseNorm = base ? base.replace(/^\/|\/$/g, "") : "";
+    var isHome = !pathNorm || pathNorm === "index.html" || (baseNorm && pathNorm === baseNorm);
     if (!isHome) {
       overlay.classList.add("disclaimer-overlay--hidden");
     } else {

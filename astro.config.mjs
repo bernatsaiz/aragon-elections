@@ -6,6 +6,7 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://bernatsaiz.com',
   base: '/aragon-elections/',
+  trailingSlash: 'always',
   build: {
     // Inline els CSS al HTML perquè carreguin sempre (evita 404 del fitxer extern)
     inlineStylesheets: 'always',
