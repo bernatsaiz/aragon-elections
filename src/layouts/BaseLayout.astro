@@ -16,8 +16,8 @@ const pathname = Astro.url.pathname;
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.ico`} />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Podcast sobre las elecciones autonómicas de la Comunidad Autónoma de Aragón" />
     <meta name="generator" content={Astro.generator} />
@@ -72,18 +72,18 @@ const pathname = Astro.url.pathname;
           <span class="material-symbols-outlined sidebar-toggle__icon" aria-hidden="true">menu</span>
         </button>
         <div class="logo">
-          <img src="/logo.svg" alt="Logo" class="logo-img" width="333" height="61" />
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="Logo" class="logo-img" width="333" height="61" />
         </div>
         <nav class="nav" aria-label="Navegación">
-          <a href="/" class={`nav-item ${pathname === "/" ? "nav-item--active" : ""}`}>
+          <a href={`${import.meta.env.BASE_URL}`} class={`nav-item ${pathname === "/" ? "nav-item--active" : ""}`}>
             <span class="material-symbols-outlined nav-item__icon" aria-hidden="true">home</span>
             Inicio
           </a>
-          <a href="/sobre/" class={`nav-item ${pathname.startsWith("/sobre") ? "nav-item--active" : ""}`}>
+          <a href={`${import.meta.env.BASE_URL}sobre/`} class={`nav-item ${pathname.startsWith("/sobre") ? "nav-item--active" : ""}`}>
             <span class="material-symbols-outlined nav-item__icon" aria-hidden="true">info</span>
             Sobre este proyecto
           </a>
-          <a href="/jugar/" class={`nav-item ${pathname.startsWith("/jugar") ? "nav-item--active" : ""}`}>
+          <a href={`${import.meta.env.BASE_URL}jugar/`} class={`nav-item ${pathname.startsWith("/jugar") ? "nav-item--active" : ""}`}>
             <span class="material-symbols-outlined nav-item__icon" aria-hidden="true">sports_esports</span>
             Jugar
           </a>
