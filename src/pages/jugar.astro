@@ -1,0 +1,329 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import { quizQuestions } from "../data/quiz";
+
+function shuffle<T>(arr: T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+const questionsForClient = shuffle(quizQuestions).map((q) => ({
+  episode: q.episode,
+  question: q.question,
+  correct: q.correct,
+  explanation: q.explanation,
+  options: shuffle([q.correct, ...q.wrong]),
+}));
+---
+
+<BaseLayout title="Jugar — Elecciones en Aragón">
+  <div class="quiz-page">
+    <div class="quiz-start" id="quiz-start">
+      <h1 class="quiz-page__title">Pon a prueba lo aprendido</h1>
+      <p class="quiz-page__intro">Responde a las preguntas del cuestionario basado en los 5 episodios del podcast. Hay 25 preguntas de respuesta múltiple.</p>
+      <button type="button" class="quiz-btn quiz-btn--primary" id="quiz-start-btn">Comenzar</button>
+      <div class="quiz-leaderboard-wrap">
+        <h2 class="quiz-leaderboard__title">Ranking de puntuaciones</h2>
+        <table class="quiz-leaderboard hidden" id="quiz-leaderboard" aria-label="Ranking de puntuaciones">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Nombre</th>
+              <th scope="col">Puntos</th>
+              <th scope="col">%</th>
+            </tr>
+          </thead>
+          <tbody id="quiz-leaderboard-body"></tbody>
+        </table>
+        <p class="quiz-leaderboard__empty hidden" id="quiz-leaderboard-empty">Aún no hay puntuaciones. ¡Sé el primero!</p>
+      </div>
+    </div>
+    <div class="quiz-game hidden" id="quiz-game">
+      <div class="quiz-arcade">
+        <div class="quiz-arcade__header">
+          <p class="quiz-arcade__progress" id="quiz-progress" aria-live="polite">Pregunta 1 de 25</p>
+          <p class="quiz-arcade__score">Puntos: <span id="quiz-score-current">0</span></p>
+        </div>
+        <h2 class="quiz-arcade__question" id="quiz-question"></h2>
+        <p class="quiz-arcade__episode-wrap">
+          <span class="quiz-arcade__episode" id="quiz-episode"></span>
+        </p>
+        <div class="quiz-arcade__options" id="quiz-options" role="group"></div>
+        <div class="quiz-feedback hidden" id="quiz-feedback" aria-live="polite">
+          <div class="quiz-feedback__box" id="quiz-feedback-box">
+            <span class="quiz-feedback__text" id="quiz-feedback-text"></span>
+          </div>
+          <div class="quiz-feedback__wrong-detail hidden" id="quiz-feedback-wrong-detail">
+            <p class="quiz-feedback__correct-label">Respuesta correcta:</p>
+            <p class="quiz-feedback__correct-answer" id="quiz-feedback-correct"></p>
+            <p class="quiz-feedback__explanation" id="quiz-feedback-explanation"></p>
+            <p class="quiz-feedback__episode-ref" id="quiz-feedback-episode"></p>
+          </div>
+          <button type="button" class="quiz-btn quiz-btn--next" id="quiz-next-btn">Siguiente pregunta</button>
+        </div>
+      </div>
+    </div>
+    <div class="quiz-result hidden" id="quiz-result">
+      <div class="quiz-arcade quiz-arcade--result">
+        <h1 class="quiz-page__title quiz-arcade__title">Resultado</h1>
+        <p class="quiz-score quiz-arcade__score-final" id="quiz-score"></p>
+        <p class="quiz-score-desc" id="quiz-score-desc"></p>
+        <div class="quiz-result__add-name hidden" id="quiz-add-name">
+          <label for="quiz-player-name" class="quiz-result__label">Añade tu nombre al ranking</label>
+          <input type="text" id="quiz-player-name" class="quiz-result__input" maxlength="30" placeholder="Tu nombre" aria-label="Tu nombre" />
+          <button type="button" class="quiz-btn quiz-btn--primary quiz-result__submit" id="quiz-submit-score">Guardar en el ranking</button>
+        </div>
+        <p class="quiz-result__saved hidden" id="quiz-result-saved">¡Guardado en el ranking!</p>
+        <button type="button" class="quiz-btn quiz-btn--pixel" id="quiz-restart-btn">Volver a jugar</button>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script define:vars={{ questionsForClient }}>
+  (function() {
+    const startEl = document.getElementById("quiz-start");
+    const gameEl = document.getElementById("quiz-game");
+    const resultEl = document.getElementById("quiz-result");
+    const startBtn = document.getElementById("quiz-start-btn");
+    const progressEl = document.getElementById("quiz-progress");
+    const questionEl = document.getElementById("quiz-question");
+    const episodeEl = document.getElementById("quiz-episode");
+    const optionsEl = document.getElementById("quiz-options");
+    const scoreCurrentEl = document.getElementById("quiz-score-current");
+    const feedbackEl = document.getElementById("quiz-feedback");
+    const feedbackBoxEl = document.getElementById("quiz-feedback-box");
+    const feedbackTextEl = document.getElementById("quiz-feedback-text");
+    const feedbackWrongDetail = document.getElementById("quiz-feedback-wrong-detail");
+    const feedbackCorrectEl = document.getElementById("quiz-feedback-correct");
+    const feedbackExplanationEl = document.getElementById("quiz-feedback-explanation");
+    const feedbackEpisodeEl = document.getElementById("quiz-feedback-episode");
+    const nextBtn = document.getElementById("quiz-next-btn");
+    const scoreEl = document.getElementById("quiz-score");
+    const scoreDescEl = document.getElementById("quiz-score-desc");
+    const restartBtn = document.getElementById("quiz-restart-btn");
+    const addNameEl = document.getElementById("quiz-add-name");
+    const playerNameInput = document.getElementById("quiz-player-name");
+    const submitScoreBtn = document.getElementById("quiz-submit-score");
+    const resultSavedEl = document.getElementById("quiz-result-saved");
+    const leaderboardBody = document.getElementById("quiz-leaderboard-body");
+    const leaderboardEmpty = document.getElementById("quiz-leaderboard-empty");
+    const leaderboardTable = document.getElementById("quiz-leaderboard");
+    if (!startEl || !gameEl || !resultEl || !startBtn || !progressEl || !questionEl || !episodeEl || !optionsEl || !scoreCurrentEl || !feedbackEl || !feedbackBoxEl || !feedbackTextEl || !feedbackWrongDetail || !feedbackCorrectEl || !feedbackExplanationEl || !feedbackEpisodeEl || !nextBtn || !scoreEl || !scoreDescEl || !restartBtn) return;
+
+    const LEADERBOARD_KEY = "quiz-leaderboard";
+    const LEADERBOARD_MAX = 50;
+
+    function getLeaderboard() {
+      try {
+        const raw = localStorage.getItem(LEADERBOARD_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) { return []; }
+    }
+    function saveLeaderboard(list) {
+      try {
+        localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list));
+      } catch (e) {}
+    }
+    function renderLeaderboard() {
+      const list = getLeaderboard();
+      if (!leaderboardBody || !leaderboardEmpty || !leaderboardTable) return;
+      leaderboardBody.innerHTML = "";
+      if (list.length === 0) {
+        leaderboardTable.classList.add("hidden");
+        leaderboardEmpty.classList.remove("hidden");
+        return;
+      }
+      leaderboardTable.classList.remove("hidden");
+      leaderboardEmpty.classList.add("hidden");
+      list.forEach(function (entry, i) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = "<td>" + (i + 1) + "</td><td>" + escapeHtml(entry.name) + "</td><td>" + entry.score + " / " + entry.total + "</td><td>" + entry.pct + "%</td>";
+        leaderboardBody.appendChild(tr);
+      });
+    }
+    function escapeHtml(s) {
+      const div = document.createElement("div");
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    let questions = Array.isArray(questionsForClient) ? questionsForClient : [];
+    let currentIndex = 0;
+    let score = 0;
+    let lastScoreTotal = 0;
+    let lastScorePct = 0;
+
+    function show(el) { el.classList.remove("hidden"); }
+    function hide(el) { el.classList.add("hidden"); }
+    function updateScoreDisplay() { if (scoreCurrentEl) scoreCurrentEl.textContent = String(score); }
+
+    function goNext() {
+      currentIndex += 1;
+      if (currentIndex < questions.length) renderQuestion();
+      else showResult();
+    }
+
+    function renderQuestion() {
+      feedbackEl.classList.add("hidden");
+      if (feedbackWrongDetail) feedbackWrongDetail.classList.add("hidden");
+      const q = questions[currentIndex];
+      if (!q) { showResult(); return; }
+      if (progressEl) progressEl.textContent = "Pregunta " + (currentIndex + 1) + " de " + questions.length;
+      questionEl.textContent = q.question;
+      episodeEl.textContent = "Episodio " + q.episode;
+      if (scoreCurrentEl) scoreCurrentEl.textContent = String(score);
+      optionsEl.innerHTML = "";
+      q.options.forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "quiz-option quiz-option--btn";
+        btn.textContent = opt;
+        btn.addEventListener("click", () => choose(opt));
+        optionsEl.appendChild(btn);
+      });
+    }
+
+    function choose(selected) {
+      const q = questions[currentIndex];
+      if (!q) return;
+      const correct = selected === q.correct;
+      if (correct) score += 1;
+      const options = optionsEl.querySelectorAll(".quiz-option");
+      options.forEach((opt) => {
+        opt.disabled = true;
+        opt.classList.add("quiz-option--disabled");
+        if (opt.textContent === q.correct) opt.classList.add("quiz-option--correct");
+        else if (opt.textContent === selected && !correct) opt.classList.add("quiz-option--wrong");
+      });
+      feedbackTextEl.textContent = correct ? "CORRECTO" : "INCORRECTO";
+      feedbackEl.classList.remove("hidden");
+      if (feedbackBoxEl) {
+        feedbackBoxEl.classList.remove("quiz-feedback__box--correct", "quiz-feedback__box--wrong");
+        feedbackBoxEl.classList.add(correct ? "quiz-feedback__box--correct" : "quiz-feedback__box--wrong");
+      }
+      if (!correct && feedbackWrongDetail && feedbackCorrectEl && feedbackExplanationEl && feedbackEpisodeEl) {
+        feedbackCorrectEl.textContent = q.correct;
+        feedbackExplanationEl.textContent = q.explanation || "";
+        feedbackEpisodeEl.textContent = "Puedes encontrar esta información en el Episodio " + q.episode + ".";
+        feedbackWrongDetail.classList.remove("hidden");
+      }
+      updateScoreDisplay();
+    }
+
+    function showResult() {
+      hide(gameEl);
+      show(resultEl);
+      const total = questions.length;
+      const pct = total ? Math.round((score / total) * 100) : 0;
+      lastScoreTotal = total;
+      lastScorePct = pct;
+      scoreEl.textContent = score + " / " + total + " (" + pct + "%)";
+      if (pct >= 90) scoreDescEl.textContent = "¡Excelente! Has seguido muy bien los episodios.";
+      else if (pct >= 70) scoreDescEl.textContent = "Muy bien. Repasa los episodios para afianzar conceptos.";
+      else scoreDescEl.textContent = "Puedes volver a escuchar el podcast y repetir el cuestionario cuando quieras.";
+      if (addNameEl) { addNameEl.classList.remove("hidden"); }
+      if (resultSavedEl) { resultSavedEl.classList.add("hidden"); }
+      if (playerNameInput) { playerNameInput.value = ""; }
+    }
+
+    if (submitScoreBtn && playerNameInput && addNameEl && resultSavedEl) {
+      submitScoreBtn.addEventListener("click", function() {
+        const name = (playerNameInput.value || "").trim();
+        if (!name) return;
+        const list = getLeaderboard();
+        list.push({ name: name, score: score, total: lastScoreTotal, pct: lastScorePct });
+        list.sort(function(a, b) {
+          if (b.score !== a.score) return b.score - a.score;
+          return b.pct - a.pct;
+        });
+        saveLeaderboard(list.slice(0, LEADERBOARD_MAX));
+        addNameEl.classList.add("hidden");
+        resultSavedEl.classList.remove("hidden");
+        renderLeaderboard();
+      });
+    }
+
+    renderLeaderboard();
+    startBtn.addEventListener("click", () => { hide(startEl); show(gameEl); currentIndex = 0; score = 0; renderQuestion(); });
+    nextBtn.addEventListener("click", goNext);
+    restartBtn.addEventListener("click", () => {
+      hide(resultEl); show(gameEl); currentIndex = 0; score = 0;
+      questions = questions.map((q) => ({ ...q, options: [...q.options].sort(() => Math.random() - 0.5) })).sort(() => Math.random() - 0.5);
+      renderQuestion();
+    });
+  })();
+</script>
+
+<style>
+  .quiz-page { padding: 40px 40px 56px; width: 100%; box-sizing: border-box; }
+  .quiz-game { width: 100%; }
+  .quiz-page__title { font-size: 1.75rem; font-weight: 700; margin: 0 0 16px; }
+  .quiz-page__intro { color: var(--text-secondary); margin: 0 0 24px; line-height: 1.6; }
+  .quiz-btn { display: inline-flex; align-items: center; justify-content: center; padding: 12px 24px; border-radius: var(--radius); font-weight: 600; font-size: 1rem; line-height: 1; background: var(--accent); color: #000; }
+  .quiz-btn:hover { background: var(--accent-hover); }
+  .quiz-btn--primary { min-width: 160px; }
+  .quiz-btn--next { font-family: "Jersey 10", sans-serif; margin-top: 24px; padding: 12px 24px; font-size: 32px; background: var(--bg-card); color: var(--text-primary); border: 3px solid var(--border); border-radius: 0; display: block; box-shadow: 4px 4px 0 #0d1117; transition: transform 0.1s, box-shadow 0.1s; }
+  .quiz-btn--next:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0 #0d1117; }
+  .quiz-btn--pixel { font-family: "Jersey 10", sans-serif; font-size: 0.75rem; padding: 14px 20px; border: 4px solid #fff; box-shadow: 4px 4px 0 #000; background: #2d5016; color: #b8f397; }
+  .quiz-btn--pixel:hover { background: #3d6b1f; transform: translate(2px, 2px); box-shadow: 2px 2px 0 #000; }
+  .hidden { display: none !important; }
+  .quiz-arcade { font-family: "Jersey 10", sans-serif; font-size: 16px; padding: 0; width: 100%; box-sizing: border-box; }
+  .quiz-arcade--result { text-align: center; padding: 24px 0; }
+  .quiz-arcade__header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .quiz-arcade__progress, .quiz-arcade__score { font-size: 2rem; color: var(--text-muted); margin: 0; }
+  .quiz-arcade__score { color: var(--accent); }
+  .quiz-arcade__question { font-size: 3rem; font-weight: 400; color: var(--text-primary); line-height: 1; margin: 0 0 12px; }
+  .quiz-arcade__episode-wrap { margin: 0 0 20px; }
+  .quiz-arcade__episode {
+    display: inline-block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #000;
+    background: var(--accent);
+    padding: 8px 20px;
+    border-radius: 999px;
+    margin: 0;
+    line-height: 1;
+    box-shadow: 0 2px 8px rgba(29, 185, 84, 0.35);
+  }
+  .quiz-arcade__options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0; padding: 0; }
+  :global(.quiz-page .quiz-arcade__options .quiz-option--btn) { font-family: "Jersey 10", sans-serif; font-size: 28px !important; font-weight: 500; line-height: 1; text-align: left; padding: 16px 18px; margin: 4px 0; background: #1e2a47; color: var(--text-primary); border: 3px solid #2d3a5c; border-radius: 0; cursor: pointer; opacity: 0.92; box-shadow: 5px 5px 0 #0d1117; transition: opacity 0.15s, transform 0.1s, box-shadow 0.1s; display: block; width: 100%; box-sizing: border-box; }
+  :global(.quiz-option--btn:hover:not(.quiz-option--disabled)) { opacity: 1; background: #252f4a; transform: translate(2px, 2px); box-shadow: 3px 3px 0 #0d1117; }
+  :global(.quiz-option--btn:focus-visible) { outline: 3px solid var(--accent); outline-offset: 2px; }
+  :global(.quiz-option--btn.quiz-option--disabled) { cursor: default; opacity: 1; }
+  :global(.quiz-option--btn.quiz-option--correct) { border-color: var(--accent); background: #1a3322; color: var(--text-primary); box-shadow: 3px 3px 0 #0d1f0a; }
+  :global(.quiz-option--btn.quiz-option--wrong) { border-color: #c41e2e; background: #331a1a; color: var(--text-primary); box-shadow: 3px 3px 0 #1a0a0a; }
+  .quiz-feedback { margin-top: 20px; line-height: 1.6; }
+  :global(.quiz-feedback__box) { padding: 20px 24px; text-align: center; border: 3px solid; border-radius: var(--radius); margin-bottom: 20px; }
+  :global(.quiz-feedback__box--correct) { background: rgba(29, 185, 84, 0.15); color: var(--accent); border-color: var(--accent); }
+  :global(.quiz-feedback__box--wrong) { background: rgba(233, 20, 41, 0.12); color: #e91429; border-color: #e91429; }
+  :global(.quiz-feedback__text) { font-size: 28px !important; font-weight: 700; font-family: "Jersey 10", sans-serif; }
+  :global(.quiz-feedback__wrong-detail) { margin-bottom: 20px; padding: 0; text-align: left; }
+  :global(.quiz-feedback__correct-label) { font-family: "Jersey 10", sans-serif; font-size: 28px !important; color: var(--text-secondary); margin: 0 0 8px; }
+  :global(.quiz-feedback__correct-answer) { font-family: "Jersey 10", sans-serif; font-size: 28px !important; color: var(--accent); margin: 0 0 12px; line-height: 1.4; }
+  :global(.quiz-feedback__explanation) { font-family: "Jersey 10", sans-serif; font-size: 26px !important; color: var(--text-primary); margin: 0 0 12px; line-height: 1.5; }
+  :global(.quiz-feedback__episode-ref) { font-family: "Jersey 10", sans-serif; font-size: 20px !important; color: var(--text-muted); margin: 0; }
+  .quiz-feedback .quiz-btn--next { margin-top: 24px; }
+  .quiz-arcade__title { font-family: "Jersey 10", sans-serif; font-size: 2rem; margin-bottom: 20px; color: var(--text-primary); }
+  .quiz-arcade__score-final { font-family: "Jersey 10", sans-serif; font-size: 2.5rem; color: var(--accent); margin: 0 0 16px; }
+  .quiz-result .quiz-score-desc { font-family: "Jersey 10", sans-serif; font-size: 1.25rem; color: var(--text-secondary); margin: 0 0 28px; line-height: 1.6; }
+  .quiz-result__add-name { margin-bottom: 24px; }
+  .quiz-result__label { display: block; font-family: "Jersey 10", sans-serif; font-size: 1.25rem; color: var(--text-secondary); margin-bottom: 8px; }
+  .quiz-result__input { display: block; width: 100%; max-width: 280px; margin: 0 auto 12px; padding: 12px 16px; font-size: 1.125rem; border: 2px solid var(--border); border-radius: var(--radius); background: var(--bg-card); color: var(--text-primary); box-sizing: border-box; }
+  .quiz-result__input::placeholder { color: var(--text-muted); }
+  .quiz-result__submit { margin-bottom: 8px; }
+  .quiz-result__saved { font-family: "Jersey 10", sans-serif; font-size: 1.25rem; color: var(--accent); margin: 0 0 24px; }
+  .quiz-leaderboard-wrap { margin-top: 40px; width: 100%; max-width: 420px; }
+  .quiz-leaderboard__title { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 0 0 12px; }
+  .quiz-leaderboard { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+  .quiz-leaderboard th, .quiz-leaderboard td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .quiz-leaderboard th { color: var(--text-muted); font-weight: 600; }
+  .quiz-leaderboard td { color: var(--text-primary); }
+  .quiz-leaderboard tbody tr:hover { background: var(--bg-hover); }
+  .quiz-leaderboard__empty { font-size: 0.9375rem; color: var(--text-muted); margin: 12px 0 0; }
+</style>

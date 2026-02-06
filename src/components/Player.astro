@@ -1,0 +1,350 @@
+---
+interface Props {
+  episodes: { title: string; coverSrc: string; src: string }[];
+}
+const { episodes } = Astro.props;
+---
+
+<div class="player" id="player">
+  <!-- Barra de progrés a tot l'ample del player -->
+  <div class="player__progress-wrap">
+    <div class="player__progress" id="player-progress">
+      <input type="range" class="player__progress-input" id="player-seek" min="0" max="100" value="0" aria-label="Posición" />
+      <span class="player__progress-thumb" aria-hidden="true"></span>
+    </div>
+  </div>
+  <div class="player__content">
+    <div class="player__track">
+      <div class="player__art" id="player-art"></div>
+      <div class="player__info">
+        <div class="player__track-title-wrap" id="player-title-wrap">
+          <span class="player__title" id="player-title">Elecciones en Aragón</span>
+        </div>
+        <span class="player__artist" id="player-artist">Selecciona un episodio</span>
+      </div>
+    </div>
+    <div class="player__center">
+      <audio id="player-audio" preload="metadata"></audio>
+      <div class="player__buttons">
+        <button type="button" class="player__btn player__btn--icon" id="player-rewind" aria-label="Retroceder 15 s">
+          <span class="material-symbols-outlined" aria-hidden="true">replay_10</span>
+        </button>
+        <button type="button" class="player__btn player__btn--play" id="player-play" aria-label="Reproducir">
+          <span class="player__play-icon player__play-icon--play material-symbols-outlined" aria-hidden="true">play_arrow</span>
+          <span class="player__play-icon player__play-icon--pause material-symbols-outlined" aria-hidden="true" hidden>pause</span>
+        </button>
+        <button type="button" class="player__btn player__btn--icon" id="player-forward" aria-label="Avanzar 15 s">
+          <span class="material-symbols-outlined" aria-hidden="true">forward_10</span>
+        </button>
+      </div>
+    </div>
+    <div class="player__spacer"></div>
+  </div>
+</div>
+
+<script define:vars={{ episodes: episodes }}>
+  (function() {
+    const audio = document.getElementById("player-audio");
+    const playBtn = document.getElementById("player-play");
+    const progressWrap = document.getElementById("player-progress");
+    const progressWrapOuter = document.querySelector(".player__progress-wrap");
+    const seekInput = document.getElementById("player-seek");
+    const titleWrap = document.getElementById("player-title-wrap");
+    const titleEl = document.getElementById("player-title");
+    const artistEl = document.getElementById("player-artist");
+    const artEl = document.getElementById("player-art");
+    const rewindBtn = document.getElementById("player-rewind");
+    const forwardBtn = document.getElementById("player-forward");
+    const iconPlay = playBtn?.querySelector(".player__play-icon--play");
+    const iconPause = playBtn?.querySelector(".player__play-icon--pause");
+    if (!audio || !playBtn || !seekInput || !titleEl || !artistEl || !artEl) return;
+
+    let currentIndex = 0;
+    const list = Array.isArray(episodes) ? episodes : [];
+
+    function loadEpisode(i) {
+      if (i < 0 || i >= list.length) return;
+      currentIndex = i;
+      const ep = list[i];
+      audio.src = ep.src || "";
+      audio.load();
+      titleEl.textContent = ep.title || "";
+      artistEl.textContent = "Episodio " + (i + 1);
+      artEl.style.backgroundImage = ep.coverSrc ? "url(" + ep.coverSrc + ")" : "none";
+      if (titleWrap) {
+        titleWrap.classList.remove("player__track-title-wrap--ticker");
+        titleWrap.offsetHeight;
+        if (titleEl.scrollWidth > titleWrap.offsetWidth) titleWrap.classList.add("player__track-title-wrap--ticker");
+      }
+    }
+
+    function updateProgress() {
+      if (!progressWrap || !audio.duration) return;
+      const pct = (audio.currentTime / audio.duration) * 100;
+      seekInput.value = String(pct);
+      progressWrap.style.setProperty("--progress", pct + "%");
+    }
+
+    function setPlaying(playing) {
+      if (iconPlay) iconPlay.hidden = playing;
+      if (iconPause) iconPause.hidden = !playing;
+    }
+
+    playBtn.addEventListener("click", function() {
+      if (audio.paused) {
+        if (!audio.src && list.length) loadEpisode(0);
+        audio.play().catch(() => {});
+      } else audio.pause();
+    });
+    audio.addEventListener("play", () => setPlaying(true));
+    audio.addEventListener("pause", () => setPlaying(false));
+    audio.addEventListener("timeupdate", updateProgress);
+    audio.addEventListener("loadedmetadata", updateProgress);
+    function seekToPercent(pct) {
+      const value = Math.max(0, Math.min(100, pct));
+      seekInput.value = String(value);
+      if (progressWrap) progressWrap.style.setProperty("--progress", value + "%");
+      if (audio.duration && !isNaN(audio.duration)) audio.currentTime = (value / 100) * audio.duration;
+    }
+
+    if (progressWrapOuter && progressWrap) {
+      progressWrapOuter.addEventListener("click", function(e) {
+        const rect = progressWrap.getBoundingClientRect();
+        const pct = rect.width > 0 ? ((e.clientX - rect.left) / rect.width) * 100 : 0;
+        seekToPercent(pct);
+      });
+      progressWrapOuter.addEventListener("mousedown", function(e) {
+        if (e.button !== 0) return;
+        const rect = progressWrap.getBoundingClientRect();
+        const pct = rect.width > 0 ? ((e.clientX - rect.left) / rect.width) * 100 : 0;
+        seekToPercent(pct);
+        function onMove(ev) {
+          const r = progressWrap.getBoundingClientRect();
+          const value = r.width > 0 ? ((ev.clientX - r.left) / r.width) * 100 : 0;
+          seekToPercent(value);
+        }
+        function onUp() {
+          document.removeEventListener("mousemove", onMove);
+          document.removeEventListener("mouseup", onUp);
+        }
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+      });
+    }
+
+    seekInput.addEventListener("input", function() {
+      seekToPercent(Number(seekInput.value));
+    });
+    seekInput.addEventListener("change", function() {
+      if (progressWrap) progressWrap.style.setProperty("--progress", seekInput.value + "%");
+    });
+    rewindBtn.addEventListener("click", () => { audio.currentTime = Math.max(0, audio.currentTime - 15); });
+    forwardBtn.addEventListener("click", () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 15); });
+
+    window.__playEpisode = function(i) {
+      loadEpisode(i);
+      audio.play().catch(() => {});
+    };
+  })();
+</script>
+
+<style>
+  .player {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Barra de progrés verda a tot l'ample */
+  .player__progress-wrap {
+    width: 100%;
+    padding: 0 16px;
+    cursor: pointer;
+  }
+  .player__progress {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 0;
+    position: relative;
+    margin: 0 auto;
+  }
+  .player__progress::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--progress, 0%);
+    background: var(--accent);
+    border-radius: 0;
+    pointer-events: none;
+  }
+  .player__progress:hover {
+    height: 6px;
+    margin-top: -1px;
+  }
+  .player__progress-input {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+  }
+  /* Thumb natiu amagat: la bola visible és .player__progress-thumb */
+  .player__progress-input::-webkit-slider-runnable-track { height: 4px; }
+  .player__progress-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    margin-top: -4px;
+  }
+  .player__progress-input::-moz-range-track { height: 4px; }
+  .player__progress-input::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+  /* Bola blanca literalment sobre la barra verda: posicionada amb --progress */
+  .player__progress-thumb {
+    position: absolute;
+    left: var(--progress, 0%);
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .player__progress-wrap:hover .player__progress-thumb {
+    opacity: 1;
+  }
+
+  .player__content {
+    display: grid;
+    grid-template-columns: 1fr minmax(180px, 400px) 1fr;
+    align-items: center;
+    padding: 0 16px 12px;
+    gap: 24px;
+    height: var(--player-height);
+  }
+
+  .player__track {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .player__art {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 4px;
+    background: var(--bg-card);
+    background-size: cover;
+    background-position: center;
+  }
+  .player__info { min-width: 0; }
+  .player__track-title-wrap { overflow: hidden; white-space: nowrap; }
+  .player__title { font-size: 0.875rem; font-weight: 600; display: inline-block; }
+  .player__track-title-wrap--ticker .player__title {
+    display: inline-block;
+    padding-left: 100%;
+    animation: player-ticker 12s linear infinite;
+  }
+  @keyframes player-ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
+  .player__artist {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .player__center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .player__buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .player__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: 50%;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .player__btn:hover {
+    color: var(--text-primary);
+    transform: scale(1.05);
+  }
+  .player__btn--icon {
+    width: 32px;
+    height: 32px;
+  }
+  .player__btn--icon .material-symbols-outlined {
+    font-family: "Material Symbols Outlined", sans-serif;
+    font-size: 24px;
+    font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  }
+  /* Cercle blanc (estil Spotify) per play/pause */
+  .player__btn--play {
+    width: 40px;
+    height: 40px;
+    background: #fff;
+    color: #000;
+  }
+  .player__btn--play:hover {
+    background: #fff;
+    transform: scale(1.08);
+  }
+  .player__btn--play .material-symbols-outlined {
+    font-family: "Material Symbols Outlined", sans-serif;
+    font-size: 28px;
+    font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
+  }
+  .player__play-icon[hidden] {
+    display: none !important;
+  }
+  .player__spacer { min-width: 0; }
+
+  @media (max-width: 768px) {
+    .player__content { grid-template-columns: 1fr minmax(0, 1fr) auto; }
+    .player__track-title-wrap--ticker .player__title { animation-duration: 8s; }
+  }
+</style>

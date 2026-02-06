@@ -1,0 +1,64 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="Sobre este proyecto" noindex={true}>
+  <div class="sobre">
+    <section class="sobre__section">
+      <h2 class="sobre__h2">Sobre Electionify y Aviso Legal</h2>
+      <h3 class="sobre__h3">Naturaleza del Proyecto</h3>
+      <p>Electionify es un proyecto de experimentación tecnológica y aprendizaje desarrollado para explorar las capacidades actuales de la Inteligencia Artificial Generativa en la creación de contenidos multimedia y el desarrollo web.</p>
+      <p>Este sitio web y el podcast asociado ("Aragón: La Partida") no tienen ninguna vinculación editorial, periodística ni política real. No pretenden ser una fuente de información oficial sobre las elecciones autonómicas de Aragón, sino un ejercicio práctico (proof of concept) sobre el uso de nuevas tecnologías.</p>
+
+      <h3 class="sobre__h3">Stack Tecnológico y Herramientas utilizadas</h3>
+      <p>Este proyecto ha sido construido integrando diversas herramientas de vanguardia en el campo de la IA y el desarrollo web:</p>
+      <ul class="sobre__list">
+        <li><strong>Generación de Contenido y Audio:</strong> Se ha utilizado NotebookLM (Google) como motor principal para procesar las fuentes documentales, extraer los datos clave y generar los guiones y los audios de los episodios del podcast (Audio Overviews). Tanto los episodios como el cuestionario de la página "Jugar" se basan en este procesamiento.</li>
+        <li><strong>Asistencia en el Desarrollo:</strong> Se han empleado los modelos Gemini (Google) y Claude (Anthropic) para la estructuración del sitio web, la redacción de textos complementarios y el diseño de las lógicas del juego interactivo.</li>
+        <li><strong>Diseño Visual:</strong> Las carátulas de los episodios y la identidad visual del podcast se han generado mediante Nanobanana Pro.</li>
+        <li><strong>Programación y Web:</strong> El sitio web se ha desarrollado sobre el framework Astro, utilizando el editor de código asistido por IA Cursor para la programación.</li>
+      </ul>
+
+      <h3 class="sobre__h3">Fuentes documentales</h3>
+      <p>El contenido de los episodios y del juego se ha generado automáticamente a partir del análisis de las siguientes fuentes documentales públicas proporcionadas al sistema:</p>
+      <ol class="sobre__list sobre__list--numbered">
+        <li>A qué hora se sabrán los resultados de las elecciones en Aragón 2026</li>
+        <li>Así fue el debate cara a cara entre Jorge Azcón (PP) y Pilar Alegría (PSOE) de cara a las elecciones de Aragón</li>
+        <li>Transcripción del vídeo: "Debate cara a cara entre Jorge Azcón (PP) y Pilar Alegría (PSOE)" (Canal YouTube Aragón TV)</li>
+        <li>Transcripción del vídeo: "ELECCIONES ARAGÓN 8F | DEBATE ELECTORAL EN RTVE CON LOS OCHO CANDIDATOS" (Canal YouTube RTVE Noticias)</li>
+        <li>El PP de Azcón repetiría resultado y Vox crecería hasta ser única llave de Gobierno en Aragón, según el CIS</li>
+        <li>Elecciones Aragón 2026: Arranca la campaña con retraso por el luto por el accidente de Adamuz</li>
+        <li>Elecciones Aragón 2026: Arranca la última semana de campaña con reproches cruzados entre los candidatos</li>
+        <li>Elecciones Aragón 2026: Ayuso y Abascal cargan contra el Gobierno de Sánchez</li>
+        <li>Elecciones Aragón 2026: Azcón y Alegría se enfrentan en un debate 'cara a cara'</li>
+        <li>Elecciones Aragón 2026: Belarra y Montero arropan a Goikoetxea, y Bustunduy a Abengochea</li>
+        <li>Elecciones Aragón 2026: Desembarco en Aragón de líderes nacionales de PP, Vox, Podemos, IU y Sumar</li>
+        <li>Elecciones Aragón 2026: Día de propuestas en sanidad y servicios sociales y Aragón Existe se persona en el caso Koldo</li>
+        <li>Elecciones Aragón 2026: Feijóo entra en campaña y Abascal vuelve a Aragón</li>
+        <li>Elecciones Aragón 2026: Feijóo y Belarra vuelven a Aragón para apoyar a sus candidatos</li>
+        <li>Elecciones Aragón 2026: San Valero, patrón de Zaragoza, y el debate en RTVE marcan la campaña</li>
+        <li>Elecciones Aragón 2026: Sánchez entra en campaña y recibe críticas</li>
+        <li>Elecciones Aragón 2026: Sánchez, Feijóo y Díaz se vuelcan en la campaña aragonesa arropando a sus candidatos</li>
+        <li>Encuestas de las elecciones en Aragón 2026: quién gana en el final de la campaña, según los sondeos</li>
+        <li>La misión (hasta ahora) imposible del PP en Aragón: repetir gobierno en la autonomía de los ocho partidos y el 3%</li>
+        <li>Quién es quién en las elecciones de Aragón 2026: así son los candidatos de los principales partidos</li>
+      </ol>
+
+      <h3 class="sobre__h3">Exención de responsabilidad</h3>
+      <p>El autor de Electionify no se hace responsable de la veracidad, exactitud o actualidad de las informaciones presentadas. Estas son el resultado del procesamiento automatizado de las fuentes mencionadas anteriormente por parte de modelos de Inteligencia Artificial. Es posible que el contenido generado contenga errores, alucinaciones o interpretaciones inexactas propias de esta tecnología.</p>
+      <p>Se ruega a los usuarios que no tomen este contenido como información periodística verificada ni como asesoramiento de voto.</p>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .sobre { max-width: 720px; padding: 40px 32px 48px; }
+  .sobre__section { margin-bottom: 32px; }
+  .sobre__h2 { font-size: 1.25rem; font-weight: 700; margin: 0 0 20px; color: var(--text-primary); }
+  .sobre__h3 { font-size: 1.1rem; font-weight: 600; margin: 24px 0 10px; color: var(--text-primary); }
+  .sobre__section p { font-size: 0.9375rem; line-height: 1.6; color: var(--text-secondary); margin: 0 0 12px; }
+  .sobre__list { margin: 0 0 16px; padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.9375rem; line-height: 1.6; }
+  .sobre__list li { margin-bottom: 10px; }
+  .sobre__list--numbered { list-style: decimal; }
+  @media (max-width: 768px) { .sobre { padding: 24px 16px 48px; } }
+</style>
