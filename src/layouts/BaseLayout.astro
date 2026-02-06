@@ -4,11 +4,17 @@ import { episodes } from "../data/podcast";
 
 interface Props {
   title?: string;
+  description?: string;
   showSidebar?: boolean;
   noindex?: boolean;
 }
 
-const { title = "Elecciones en Aragón", showSidebar = true, noindex = false } = Astro.props;
+const defaultDescription = "Proyecto experimental hecho con IA (NotebookLM, Gemini, Cursor). Contenido sobre las elecciones en Aragón. No debe utilizarse como información verificada.";
+const { title = "Elecciones en Aragón", description = defaultDescription, showSidebar = true, noindex = false } = Astro.props;
+const siteOrigin = Astro.site ? String(Astro.site).replace(/\/$/, "") : Astro.url.origin;
+const baseUrl = import.meta.env.BASE_URL || "/";
+const fullUrl = `${siteOrigin}${Astro.url.pathname}`;
+const ogImageUrl = `${siteOrigin}${baseUrl.endsWith("/") ? baseUrl : baseUrl + "/"}seo.jpg`;
 const pathname = Astro.url.pathname;
 const base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") || "";
 const isHome = pathname === base || pathname === base + "/" || pathname === "/";
@@ -21,12 +27,22 @@ const isJugar = pathname.startsWith(base + "/jugar") || pathname.startsWith("/ju
   <head>
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
-    <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.ico`} />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Podcast sobre las elecciones autonómicas de la Comunidad Autónoma de Aragón" />
+    <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
     <title>{title}</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Elecciones en Aragón" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:url" content={ogImageUrl} />
+    <meta property="og:url" content={fullUrl} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
